@@ -60,6 +60,8 @@ int main(int argc, char **argv) {
     if (argc != 2)
         throw std::runtime_error("invalid main args");
 
+    HttpConn::prepareResource();
+
     int listen_fd = socket(PF_INET, SOCK_STREAM, 0);
     if (listen_fd == -1) {
         printf("%s\n", strerror(errno));

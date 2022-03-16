@@ -9,6 +9,7 @@
 
 #include <ctime>
 
+#include <dirent.h>
 #include <arpa/inet.h>
 #include <sys/uio.h>
 #include <sys/stat.h>
@@ -49,9 +50,12 @@ static std::unordered_map<int, const char *> status_code_map = {
 };
 
 
+static std::regex req_re("^(GET|POST)\\s([^\\s]+)\\s(HTTP\\/1\\.1)$", std::regex::icase);
+static std::default_random_engine file_no_e(time(nullptr));
+static std::uniform_int_distribution<int> distribution(0, 0x7fffffff);
+
 // http conn class
 class HttpConn : public Runner {
-
 public:
     // class interface
     HttpConn();
@@ -65,6 +69,8 @@ public:
     bool writeResp();
 
     void run() final;       // parse http request in buffer
+    static void addResourceFile(const char *filename);
+    static void prepareResource();
 
 private:
     // http common function
@@ -120,10 +126,8 @@ private:
     // std::regex req_re;
 
     HTTP_CHECK_STATE m_check_state;
-};
 
-static std::regex req_re("^(GET|POST)\\s([^\\s]+)\\s(HTTP\\/1\\.1)$", std::regex::icase);
-static std::default_random_engine file_no_e(time(nullptr));
-static std::uniform_int_distribution<int> distribution(0, 0x7fffffff);
+    static std::vector<std::string> resource_filename;
+};
 
 #endif //TINYSERVER_HTTP_CONN_H

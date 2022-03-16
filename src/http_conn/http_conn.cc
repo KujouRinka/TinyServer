@@ -16,9 +16,9 @@
 #include "http_conn.h"
 #include "common.h"
 
-constexpr int IMAGE_NUM = 10;
+std::vector<std::string> HttpConn::resource_filename;
 
-HttpConn::HttpConn() {}
+HttpConn::HttpConn() = default;
 
 void HttpConn::init(int remote_fd, const sockaddr_in &address, int epoll_fd) {
     m_epoll_fd = epoll_fd;
@@ -270,19 +270,12 @@ HTTP_CODE HttpConn::parseContent() {
             m_content_type = HTML;
             return prepareFile("funny_box.html");
         } else if (strcmp(m_src_path, "/random_funny") == 0) {
-            int file_no = distribution(file_no_e) % IMAGE_NUM;
-            char file_name[1024] = "funny_mystery_box/";
-            int2C_string(file_no, file_name + 18);
-            int len = strlen(file_name);
-            if (prepareFile(strcat(file_name, ".png")) == FILE_REQUEST) {
-                m_content_type = IMG_PNG;
-                return FILE_REQUEST;
-            } else if (prepareFile((strcpy(file_name + len, ".jpg"), file_name)) == FILE_REQUEST) {
+            std::string &filename = resource_filename[distribution(file_no_e) % resource_filename.size()];
+            if (filename.substr(filename.size() - 4) == ".jpg")
                 m_content_type = IMG_JPG;
-                return FILE_REQUEST;
-            } else {
-                return NO_RESOURCE;
-            }
+            else if (filename.substr(filename.size() - 4) == ".png")
+                m_content_type = IMG_PNG;
+            return prepareFile(("funny_mystery_box/" + filename).c_str());
         } else {
             return NO_RESOURCE;
         }
@@ -361,4 +354,20 @@ void HttpConn::addHeader(const char *key, const char *value) {
     strcat(m_write_header_buf, value);
     m_header_size += strlen(key) + strlen(value) + 2;
     addCRLF();
+}
+
+void HttpConn::addResourceFile(const char *filename) {
+    resource_filename.emplace_back(filename);
+}
+
+void HttpConn::prepareResource() {
+    DIR *resource_dir;
+    if ((resource_dir = opendir("funny_mystery_box")) == nullptr)
+        exit(1);
+    struct dirent *ptr;
+    while ((ptr = readdir(resource_dir)) != nullptr) {
+        if (ptr->d_type == DT_REG)
+            addResourceFile(ptr->d_name);
+    }
+    closedir(resource_dir);
 }
