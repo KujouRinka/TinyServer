@@ -29,13 +29,10 @@ ThreadPool::~ThreadPool() {
 }
 
 bool ThreadPool::appendTask(Runner *runner) {
-    m_queue_mutex.lock();
-    if (m_task_queue.size() >= m_max_wait_task) {
-        m_queue_mutex.unlock();
+    std::lock_guard<std::mutex> g(m_queue_mutex);
+    if (m_task_queue.size() >= m_max_wait_task)
         return false;
-    }
     m_task_queue.push(runner);
-    m_queue_mutex.unlock();
     m_sem.post();
     return true;
 }
