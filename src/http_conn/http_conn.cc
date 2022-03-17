@@ -162,7 +162,15 @@ bool HttpConn::writeResp() {
             unmap();
             modFd(m_epoll_fd, m_remote_fd, EPOLLIN);
             init();
-            return true;
+
+            // enable consistent connection
+            // return true;
+
+            // disable consistent connection
+            // for preventing fd leaks
+            // TODO: implement timer to close inactive connection
+            //  to make consistent connection possible.
+            return false;
         }
     }
 }
