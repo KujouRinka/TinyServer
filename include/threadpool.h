@@ -3,8 +3,7 @@
 
 #include <queue>
 #include <mutex>
-
-#include "locker.h"
+#include <condition_variable>
 
 class Runner;
 
@@ -25,7 +24,7 @@ private:
 
     std::queue<Runner *> m_task_queue;
     std::mutex m_queue_mutex;
-    Sem m_sem;
+    std::condition_variable m_cv;
     bool m_stop;
 };
 

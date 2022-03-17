@@ -33,7 +33,7 @@ bool ThreadPool::appendTask(Runner *runner) {
     if (m_task_queue.size() >= m_max_wait_task)
         return false;
     m_task_queue.push(runner);
-    m_sem.post();
+    m_cv.notify_one();
     return true;
 }
 
@@ -45,14 +45,11 @@ void *ThreadPool::worker(void *arg) {
 
 void ThreadPool::run() {
     while (!m_stop) {
-        m_sem.wait();
-        m_queue_mutex.lock();
-        Runner *runner = nullptr;
-        if (!m_task_queue.empty()) {
-            runner = m_task_queue.front();
-            m_task_queue.pop();
-        }
-        m_queue_mutex.unlock();
+        std::unique_lock<std::mutex> lk(m_queue_mutex);
+        m_cv.wait(lk, [this]() { return !m_task_queue.empty(); });
+        Runner *runner = m_task_queue.front();
+        m_task_queue.pop();
+        lk.unlock();
         if (runner != nullptr)
             runner->run();
     }
